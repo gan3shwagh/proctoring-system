@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+// import { useAuth } from '../contexts/AuthContext'; // Removed unused import
 import { sessionApi } from '../services/api';
 import { CheckCircle, XCircle, AlertTriangle, Trophy, Home, Loader2 } from 'lucide-react';
 
 export const ExamResults: React.FC = () => {
     const { sessionId } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    // const { user } = useAuth(); // Removed unused user
     const [session, setSession] = useState<any>(null);
     const [exam, setExam] = useState<any>(null);
     const [violations, setViolations] = useState<any[]>([]);
@@ -22,7 +22,7 @@ export const ExamResults: React.FC = () => {
                 setSession(sessionData);
 
                 // Fetch exam details
-                const response = await fetch(`http://localhost:3000/api/exams/${sessionData.exam_id}`);
+                const response = await fetch(`http://localhost:3000/api/exams/${(sessionData as any).exam_id}`);
                 const examData = await response.json();
                 setExam(examData);
 
@@ -152,8 +152,8 @@ export const ExamResults: React.FC = () => {
                             {violations.map((v, i) => (
                                 <div key={i} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
                                     <span className={`px-2 py-1 rounded text-xs font-medium ${v.severity === 'critical' ? 'bg-red-600 text-white' :
-                                            v.severity === 'high' ? 'bg-orange-600 text-white' :
-                                                'bg-yellow-600 text-white'
+                                        v.severity === 'high' ? 'bg-orange-600 text-white' :
+                                            'bg-yellow-600 text-white'
                                         }`}>
                                         {v.severity}
                                     </span>
