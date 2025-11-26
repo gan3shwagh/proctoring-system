@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import examsRouter from './routes/exams';
 import violationsRouter from './routes/violations';
 import sessionsRouter from './routes/sessions';
@@ -24,6 +25,15 @@ app.use('/api/sessions', sessionsRouter);
 // Health check
 app.get('/health', (req, res) => {
     res.json({ status: 'ok' });
+});
+
+// Serve static files from the client dist directory
+const clientDistPath = path.join(__dirname, '../../client/dist');
+app.use(express.static(clientDistPath));
+
+// Handle React routing, return all requests to React app
+app.get(/(.*)/, (req, res) => {
+    res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
 app.listen(PORT, () => {
