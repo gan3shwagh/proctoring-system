@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../contexts/AuthContext';
 import { examApi, examManagementApi, type Exam } from '../services/api';
-import { Plus, Edit, Trash2, Loader2, AlertCircle, Shield, LogOut, BookOpen } from 'lucide-react';
+import { Plus, Edit, Trash2, Loader2, AlertCircle, BookOpen } from 'lucide-react';
 import { CreateExamModal } from '../components/CreateExamModal';
 import { EditExamModal } from '../components/EditExamModal';
+import { InstructorSidebar } from '../components/InstructorSidebar';
 
 export const ExamManagement: React.FC = () => {
-    const navigate = useNavigate();
-    const { user, signOut } = useAuth();
+
+    const { user } = useAuth();
     const [exams, setExams] = useState<Exam[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -46,40 +47,31 @@ export const ExamManagement: React.FC = () => {
         }
     };
 
-    const handleLogout = async () => {
-        await signOut();
-        navigate('/login');
-    };
+
+
+    // Get user role for sidebar
+    const [currentUserRole, setCurrentUserRole] = useState<string>('');
+    useEffect(() => {
+        const checkRole = async () => {
+            const demoUser = localStorage.getItem('demo_user');
+            if (demoUser) {
+                const parsed = JSON.parse(demoUser);
+                setCurrentUserRole(parsed.role);
+                return;
+            }
+            if (user) {
+                // Fetch role logic here or assume instructor
+                setCurrentUserRole('instructor');
+            }
+        };
+        checkRole();
+    }, [user]);
 
     return (
-        <div className="min-h-screen bg-gray-50">
-            {/* Header */}
-            <nav className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="max-w-7xl mx-auto flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <Shield className="w-8 h-8 text-blue-600" />
-                        <span className="text-xl font-bold text-gray-900">ProctorAI</span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <a
-                            href="/instructor"
-                            className="text-sm text-gray-600 hover:text-gray-900 font-medium"
-                        >
-                            ← Back to Dashboard
-                        </a>
-                        <span className="text-sm text-gray-600">{user?.email}</span>
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
-                        >
-                            <LogOut className="w-4 h-4" />
-                            Logout
-                        </button>
-                    </div>
-                </div>
-            </nav>
+        <div className="flex min-h-screen bg-gray-50">
+            <InstructorSidebar userRole={currentUserRole} />
 
-            <div className="p-8">
+            <div className="flex-1 p-8 overflow-auto">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
                     <div className="flex justify-between items-center mb-8">

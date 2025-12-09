@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
-import { Loader2, AlertCircle, UserPlus, Camera } from 'lucide-react';
+import { Loader2, AlertCircle, UserPlus, Camera, Building2, GitBranch } from 'lucide-react';
 
 export const SignupPage: React.FC = () => {
     const navigate = useNavigate();
@@ -17,6 +17,51 @@ export const SignupPage: React.FC = () => {
     const [isCameraOpen, setIsCameraOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Institute and Branch state
+    const [institutes, setInstitutes] = useState<any[]>([]);
+    const [branches, setBranches] = useState<any[]>([]);
+    const [selectedInstitute, setSelectedInstitute] = useState('');
+    const [selectedBranch, setSelectedBranch] = useState('');
+
+    React.useEffect(() => {
+        fetchInstitutes();
+    }, []);
+
+    const fetchInstitutes = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('institutes')
+                .select('*')
+                .order('name');
+
+            if (error) throw error;
+            setInstitutes(data || []);
+        } catch (err) {
+            console.error('Error fetching institutes:', err);
+        }
+    };
+
+    const handleInstituteChange = async (instituteId: string) => {
+        setSelectedInstitute(instituteId);
+        setSelectedBranch('');
+        setBranches([]);
+
+        if (!instituteId) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('branches')
+                .select('*')
+                .eq('institute_id', instituteId)
+                .order('name');
+
+            if (error) throw error;
+            setBranches(data || []);
+        } catch (err) {
+            console.error('Error fetching branches:', err);
+        }
+    };
 
     const startCamera = async () => {
         setIsCameraOpen(true);
@@ -64,6 +109,11 @@ export const SignupPage: React.FC = () => {
             return;
         }
 
+        if (!selectedInstitute || !selectedBranch) {
+            setError('Please select your institute and branch');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -100,7 +150,11 @@ export const SignupPage: React.FC = () => {
                 // Save face photo to user profile
                 const { error: photoError } = await supabase
                     .from('user_profiles')
-                    .update({ face_photo: facePhoto })
+                    .update({
+                        face_photo: facePhoto,
+                        institute_id: selectedInstitute,
+                        branch_id: selectedBranch
+                    })
                     .eq('user_id', user.id);
 
                 if (photoError) {
@@ -195,6 +249,55 @@ export const SignupPage: React.FC = () => {
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                             placeholder="••••••••"
                         />
+                    </div>
+
+                    {/* Institute Selection */}
+                    <div>
+                        <label htmlFor="institute" className="block text-sm font-medium text-gray-700 mb-2">
+                            Institute
+                        </label>
+                        <div className="relative">
+                            <Building2 className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                            <select
+                                id="institute"
+                                value={selectedInstitute}
+                                onChange={(e) => handleInstituteChange(e.target.value)}
+                                required
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white"
+                            >
+                                <option value="">Select Institute</option>
+                                {institutes.map((inst) => (
+                                    <option key={inst.id} value={inst.id}>
+                                        {inst.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Branch Selection */}
+                    <div>
+                        <label htmlFor="branch" className="block text-sm font-medium text-gray-700 mb-2">
+                            Branch
+                        </label>
+                        <div className="relative">
+                            <GitBranch className="absolute left-3 top-3.5 h-5 w-5 text-gray-400" />
+                            <select
+                                id="branch"
+                                value={selectedBranch}
+                                onChange={(e) => setSelectedBranch(e.target.value)}
+                                required
+                                disabled={!selectedInstitute}
+                                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors appearance-none bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                            >
+                                <option value="">Select Branch</option>
+                                {branches.map((branch) => (
+                                    <option key={branch.id} value={branch.id}>
+                                        {branch.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
 
                     {/* Face Photo Capture */}

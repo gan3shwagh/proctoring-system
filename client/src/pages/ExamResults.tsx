@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 // import { useAuth } from '../contexts/AuthContext'; // Removed unused import
-import { sessionApi } from '../services/api';
+import { sessionApi, examApi, violationApi } from '../services/api';
 import { CheckCircle, XCircle, AlertTriangle, Trophy, Home, Loader2 } from 'lucide-react';
 
 export const ExamResults: React.FC = () => {
@@ -22,14 +22,21 @@ export const ExamResults: React.FC = () => {
                 setSession(sessionData);
 
                 // Fetch exam details
-                const response = await fetch(`http://localhost:3000/api/exams/${(sessionData as any).exam_id}`);
-                const examData = await response.json();
-                setExam(examData);
+                try {
+                    const examData = await examApi.getById((sessionData as any).exam_id);
+                    setExam(examData);
+                } catch (err) {
+                    console.error('Error fetching exam:', err);
+                }
 
                 // Fetch violations
-                const violationsResponse = await fetch(`http://localhost:3000/api/violations?session_id=${sessionId}`);
-                const violationsData = await violationsResponse.json();
-                setViolations(violationsData);
+                try {
+                    const violationsData = await violationApi.getBySession(sessionId);
+                    setViolations(violationsData);
+                } catch (err) {
+                    console.error('Error fetching violations:', err);
+                    setViolations([]);
+                }
             } catch (err) {
                 console.error('Error fetching results:', err);
             } finally {

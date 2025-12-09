@@ -7,6 +7,8 @@ import { supabase } from '../lib/supabase';
 import { useMediaPipe } from '../hooks/useMediaPipe';
 import { useExamIntegrity } from '../hooks/useExamIntegrity';
 import { useAudioMonitor } from '../hooks/useAudioMonitor';
+import { useScreenMonitor } from '../hooks/useScreenMonitor';
+import { useWebRTC } from '../hooks/useWebRTC';
 import { AlertTriangle, Maximize, Mic, Loader2 } from 'lucide-react';
 import { examApi, violationApi, type Exam } from '../services/api';
 
@@ -70,9 +72,9 @@ export const ExamPage: React.FC = () => {
         };
 
         initExam();
-    }, [id, navigate]);
+    }, [id, user, navigate]);
 
-    const handleViolation = useCallback(async (type: 'TAB_SWITCH' | 'FULLSCREEN_EXIT' | 'AUDIO_DETECTED' | 'NO_FACE' | 'MULTIPLE_FACES' | 'LOOKING_AWAY' | 'USER_MISMATCH') => {
+    const handleViolation = useCallback(async (type: 'TAB_SWITCH' | 'FULLSCREEN_EXIT' | 'AUDIO_DETECTED' | 'NO_FACE' | 'MULTIPLE_FACES' | 'LOOKING_AWAY' | 'USER_MISMATCH' | 'FOCUS_LOST' | 'LIVENESS_FAILURE') => {
         const now = Date.now();
         let message = "";
         let severity: 'low' | 'medium' | 'high' | 'critical' = 'medium';
@@ -100,6 +102,12 @@ export const ExamPage: React.FC = () => {
         } else if (type === 'USER_MISMATCH') {
             message = "User identity mismatch!";
             severity = 'critical';
+        } else if (type === 'FOCUS_LOST') {
+            message = "Window focus lost!";
+            severity = 'high';
+        } else if (type === 'LIVENESS_FAILURE') {
+            message = "Liveness check failed (No blink detected)!";
+            severity = 'critical';
         }
 
         const violationData = {
@@ -126,6 +134,34 @@ export const ExamPage: React.FC = () => {
 
     const { isFullscreen, enterFullscreen } = useExamIntegrity({ onViolation: (type) => handleViolation(type) });
     const { isTalking } = useAudioMonitor({ onViolation: () => handleViolation('AUDIO_DETECTED') });
+    // WebRTC Broadcasting
+    const [combinedStream, setCombinedStream] = useState<MediaStream | null>(null);
+    const { stream: screenStream } = useScreenMonitor({
+        sessionId,
+        onViolation: (type) => handleViolation(type)
+    });
+
+    // Combine Webcam + Screen into one stream (or just send screen if active)
+    useEffect(() => {
+        if (screenStream) {
+            // If screen sharing is active, prioritize it. 
+            // Ideally we'd send both tracks, but for simplicity let's send the screen stream.
+            // We can add the webcam audio track if needed.
+            setCombinedStream(screenStream);
+        } else if (webcamRef.current?.video) {
+            // Fallback to webcam if no screen share (though screen share is mandatory)
+            // We need to capture the stream from the webcam component
+            // This is a bit tricky since WebcamFeed encapsulates the logic.
+            // For now, let's rely on screenStream being the primary broadcast.
+        }
+    }, [screenStream]);
+
+    useWebRTC({
+        roomId: id || 'default-room', // Use Exam ID so all students are in the same room
+        userId: user?.id || 'unknown-student',
+        isBroadcaster: true,
+        localStream: combinedStream
+    });
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -257,17 +293,43 @@ export const ExamPage: React.FC = () => {
                         <button
                             onClick={() => setCurrentQuestionIndex(prev => Math.max(0, prev - 1))}
                             disabled={currentQuestionIndex === 0 || !exam}
-                            className="px-6 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                            className="px-6 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Previous
                         </button>
-                        <button
-                            onClick={() => setCurrentQuestionIndex(prev => Math.min((exam?.questions.length || 1) - 1, prev + 1))}
-                            disabled={currentQuestionIndex === (exam?.questions.length || 1) - 1 || !exam}
-                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            Next
-                        </button>
+
+                        {currentQuestionIndex === (exam?.questions.length || 1) - 1 ? (
+                            <button
+                                onClick={async () => {
+                                    if (!sessionId) return;
+
+                                    const confirmed = window.confirm('Are you sure you want to submit your exam? This action cannot be undone.');
+                                    if (!confirmed) return;
+
+                                    try {
+                                        // Submit exam
+                                        await examApi.submitSession(id!, sessionId);
+                                        alert('Exam submitted successfully!');
+                                        navigate('/');
+                                    } catch (error) {
+                                        console.error('Error submitting exam:', error);
+                                        alert('Failed to submit exam. Please try again.');
+                                    }
+                                }}
+                                disabled={!exam || !sessionId}
+                                className="px-8 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold"
+                            >
+                                Submit Exam
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setCurrentQuestionIndex(prev => Math.min((exam?.questions.length || 1) - 1, prev + 1))}
+                                disabled={currentQuestionIndex === (exam?.questions.length || 1) - 1 || !exam}
+                                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Next
+                            </button>
+                        )}
                     </div>
                 </div>
 

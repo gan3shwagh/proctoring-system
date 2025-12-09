@@ -19,6 +19,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Check for demo user first
+        const demoUser = localStorage.getItem('demo_user');
+        if (demoUser) {
+            const parsedDemoUser = JSON.parse(demoUser);
+            setUser(parsedDemoUser as any);
+            setSession({ user: parsedDemoUser } as any);
+            setLoading(false);
+            return;
+        }
+
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
@@ -88,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const signOut = async () => {
+        localStorage.removeItem('demo_user');
         await supabase.auth.signOut();
     };
 

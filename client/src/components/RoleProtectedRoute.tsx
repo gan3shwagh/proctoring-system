@@ -21,6 +21,15 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({ children
                 return;
             }
 
+            // Check if this is a demo user
+            const demoUser = localStorage.getItem('demo_user');
+            if (demoUser) {
+                const parsedDemoUser = JSON.parse(demoUser);
+                setUserRole(parsedDemoUser.role || 'admin');
+                setLoading(false);
+                return;
+            }
+
             try {
                 const { data, error } = await supabase
                     .from('user_profiles')

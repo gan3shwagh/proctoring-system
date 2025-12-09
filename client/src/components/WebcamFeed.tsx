@@ -9,7 +9,7 @@ export interface WebcamFeedHandle {
 }
 
 interface WebcamFeedProps {
-    onViolation?: (type: 'NO_FACE' | 'MULTIPLE_FACES' | 'LOOKING_AWAY') => void;
+    onViolation?: (type: 'NO_FACE' | 'MULTIPLE_FACES' | 'LOOKING_AWAY' | 'LIVENESS_FAILURE') => void;
 }
 
 export const WebcamFeed = forwardRef<WebcamFeedHandle, WebcamFeedProps>(({ onViolation }, ref) => {
@@ -18,6 +18,7 @@ export const WebcamFeed = forwardRef<WebcamFeedHandle, WebcamFeedProps>(({ onVio
     const [violation, setViolation] = useState<ViolationStatus | null>(null);
     const requestRef = useRef<number>(0);
     const lastViolationTime = useRef<number>(0);
+    const lastBlinkTime = useRef<number>(Date.now());
 
     useImperativeHandle(ref, () => ({
         captureSnapshot: () => {
@@ -72,6 +73,20 @@ export const WebcamFeed = forwardRef<WebcamFeedHandle, WebcamFeedProps>(({ onVio
 
             // Report violations to parent (throttled)
             const now = Date.now();
+
+            // Liveness Check (Blink Detection)
+            if (status.isBlinking) {
+                lastBlinkTime.current = now;
+            } else {
+                // If no blink for 60 seconds (60000ms)
+                if (now - lastBlinkTime.current > 60000) {
+                    if (now - lastViolationTime.current > 5000) { // Throttle liveness alerts
+                        onViolation?.('LIVENESS_FAILURE');
+                        lastViolationTime.current = now;
+                    }
+                }
+            }
+
             if (now - lastViolationTime.current > 2000) { // Throttle 2s
                 if (status.isNoFace) {
                     onViolation?.('NO_FACE');

@@ -6,11 +6,22 @@ import examsRouter from './routes/exams';
 import violationsRouter from './routes/violations';
 import sessionsRouter from './routes/sessions';
 import examManagementRouter from './routes/exam-management';
+import institutesRouter from './routes/institutes';
+import profileRouter from './routes/profile';
+import usersRouter from './routes/users';
+import adminInstitutesRouter from './routes/admin-institutes';
 
 dotenv.config();
 
+import { createServer } from 'http';
+import { initSocket } from './socket';
+
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3000;
+
+// Initialize Socket.io
+initSocket(httpServer);
 
 // Middleware
 app.use(cors());
@@ -21,6 +32,10 @@ app.use('/api/exams', examsRouter);
 app.use('/api/exam-management', examManagementRouter);
 app.use('/api/violations', violationsRouter);
 app.use('/api/sessions', sessionsRouter);
+app.use('/api/institutes', institutesRouter);
+app.use('/api/profile', profileRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/admin', adminInstitutesRouter);
 
 // Health check
 app.get('/health', (req, res) => {
@@ -36,6 +51,7 @@ app.get(/(.*)/, (req, res) => {
     res.sendFile(path.join(clientDistPath, 'index.html'));
 });
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+

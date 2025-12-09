@@ -16,6 +16,19 @@ export const LoginPage: React.FC = () => {
         setError(null);
         setLoading(true);
 
+        // Demo mode: Allow hardcoded admin login
+        if (email === 'admin' && password === '123') {
+            // Create a mock user session for demo
+            localStorage.setItem('demo_user', JSON.stringify({
+                id: 'demo-admin-id',
+                email: 'admin@demo.com',
+                role: 'admin'
+            }));
+            // Trigger auth context update by reloading
+            window.location.href = '/admin/dashboard';
+            return;
+        }
+
         const { error } = await signIn(email, password);
 
         if (error) {
@@ -47,16 +60,16 @@ export const LoginPage: React.FC = () => {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                            Email Address
+                            Email or Username
                         </label>
                         <input
                             id="email"
-                            type="email"
+                            type="text"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                            placeholder="you@example.com"
+                            placeholder="admin or you@example.com"
                         />
                     </div>
 

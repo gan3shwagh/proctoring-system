@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 
 interface ExamIntegrityOptions {
-    onViolation: (type: 'TAB_SWITCH' | 'FULLSCREEN_EXIT') => void;
+    onViolation: (type: 'TAB_SWITCH' | 'FULLSCREEN_EXIT' | 'FOCUS_LOST') => void;
 }
 
 export const useExamIntegrity = ({ onViolation }: ExamIntegrityOptions) => {
@@ -28,6 +28,15 @@ export const useExamIntegrity = ({ onViolation }: ExamIntegrityOptions) => {
             }
         };
 
+        const handleWindowBlur = () => {
+            setIsTabActive(false);
+            onViolation('FOCUS_LOST');
+        };
+
+        const handleWindowFocus = () => {
+            setIsTabActive(true);
+        };
+
         const handleFullscreenChange = () => {
             if (!document.fullscreenElement) {
                 setIsFullscreen(false);
@@ -38,6 +47,8 @@ export const useExamIntegrity = ({ onViolation }: ExamIntegrityOptions) => {
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
+        window.addEventListener('blur', handleWindowBlur);
+        window.addEventListener('focus', handleWindowFocus);
         document.addEventListener('fullscreenchange', handleFullscreenChange);
 
         // Attempt to enter fullscreen on mount
@@ -45,6 +56,8 @@ export const useExamIntegrity = ({ onViolation }: ExamIntegrityOptions) => {
 
         return () => {
             document.removeEventListener('visibilitychange', handleVisibilityChange);
+            window.removeEventListener('blur', handleWindowBlur);
+            window.removeEventListener('focus', handleWindowFocus);
             document.removeEventListener('fullscreenchange', handleFullscreenChange);
         };
     }, [onViolation, enterFullscreen]);

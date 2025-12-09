@@ -8,6 +8,7 @@ export interface ViolationStatus {
     faceCount: number;
     isMultipleFaces: boolean;
     isNoFace: boolean;
+    isBlinking?: boolean;
 }
 
 // Heuristic to estimate Head Yaw (Left/Right turn)
@@ -40,7 +41,8 @@ export const analyzeViolation = (result: FaceLandmarkerResult): ViolationStatus 
             gazeDirection: 'CENTER',
             faceCount: 0,
             isMultipleFaces: false,
-            isNoFace: true
+            isNoFace: true,
+            isBlinking: false
         };
     }
 
@@ -50,7 +52,8 @@ export const analyzeViolation = (result: FaceLandmarkerResult): ViolationStatus 
             gazeDirection: 'CENTER',
             faceCount,
             isMultipleFaces: true,
-            isNoFace: false
+            isNoFace: false,
+            isBlinking: false
         };
     }
 
@@ -131,11 +134,17 @@ export const analyzeViolation = (result: FaceLandmarkerResult): ViolationStatus 
         gazeDirection = 'DOWN';
     }
 
+    // 3. Blink Detection
+    const eyeBlinkLeft = blendshapes.find(b => b.categoryName === 'eyeBlinkLeft')?.score || 0;
+    const eyeBlinkRight = blendshapes.find(b => b.categoryName === 'eyeBlinkRight')?.score || 0;
+    const isBlinking = eyeBlinkLeft > 0.5 && eyeBlinkRight > 0.5;
+
     return {
         isLookingAway,
         gazeDirection,
         faceCount,
         isMultipleFaces: false,
-        isNoFace: false
+        isNoFace: false,
+        isBlinking
     };
 };

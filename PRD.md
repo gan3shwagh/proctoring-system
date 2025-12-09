@@ -44,11 +44,24 @@ The AI Proctoring System is a web-based application designed to ensure the integ
 - **Session Management**:
     - View detailed logs of specific student sessions.
     - Terminate sessions if necessary.
+- **User Management (Admin)**:
+    - Full CRUD capabilities for Students and Teachers.
+    - Ability to promote/demote users (change roles).
 
 ### 4.3 Backend & Data
 - **Session Tracking**: Records start/end times and status.
 - **Violation Logging**: Stores type, timestamp, and metadata for every detected event.
-- **Credibility Scoring**: Calculates a trust score based on the frequency and severity of violations.
+- **Credibility Scoring**: Calculates a trust score based on the frequency and severity of violations (using Weighted Voting Scheme).
+
+### 4.4 Advanced AI Features (Adapted from ProctAI)
+- **Multi-Entity Detection**: Detects if multiple people are present in the camera frame.
+- **Liveness Detection**: Verifies the user is a real person and not a photo/video (anti-spoofing).
+- **Acoustic Analysis**:
+    - **Voice Activity Detection**: Detects speech segments.
+    - **Speaker Counting**: Flags if multiple distinct voices are detected (future scope).
+- **Behavioral Analysis**:
+    - **Input Monitoring**: Tracks mouse velocity and keystroke dynamics (where possible via browser APIs) to detect anomalies.
+    - **Browser Focus**: Tracks tab switching and window focus events.
 
 ## 5. Technical Architecture
 
